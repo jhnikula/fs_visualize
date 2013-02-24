@@ -158,7 +158,7 @@ int main(int argc, char **argv)
 		}
 		processed += i;
 
-		tmp = 100 * processed / len;
+		tmp = processed / (len / 100);
 		if (tmp > progress_percent) {
 			progress_percent = tmp;
 			printf("\r%d %%", progress_percent);
