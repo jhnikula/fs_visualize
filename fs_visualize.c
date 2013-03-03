@@ -127,8 +127,15 @@ int main(int argc, char **argv)
 		goto err1;
 	}
 
-	fseek(fp, 0L, SEEK_END);
+	if (fseek(fp, 0L, SEEK_END) < 0) {
+		perror(argv[1]);
+		goto err2;
+	}
 	len = ftell(fp);
+	if (len < 0) {
+		perror(argv[1]);
+		goto err2;
+	}
 	fseek(fp, 0L, SEEK_SET);
 	pix_size = calc_pix_size(len);
 
