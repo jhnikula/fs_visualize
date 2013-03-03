@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-O2 -Wall
+CFLAGS=-O2 -Wall -D_FILE_OFFSET_BITS=64
 LIBS=-lm -lpng
 
 OUTPUT=fs_visualize

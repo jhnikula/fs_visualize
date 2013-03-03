@@ -9,7 +9,7 @@
 
 #define MAX_PIXELS	1024*1024
 
-unsigned long calc_pix_size(unsigned long fsize)
+unsigned long calc_pix_size(off_t fsize)
 {
 	unsigned long psize = PAGE_SIZE;
 
@@ -109,7 +109,7 @@ int writeImage(char* filename, int width, int height, unsigned char *buffer)
 int main(int argc, char **argv)
 {
 	FILE *fp;
-	long len, processed = 0, tmp;
+	off_t len, processed = 0, tmp;
 	unsigned long pix_size;
 	unsigned char *buf, *img;
 	int i, pixels, w, pos = 0, progress_percent = -1;
@@ -127,16 +127,16 @@ int main(int argc, char **argv)
 		goto err1;
 	}
 
-	if (fseek(fp, 0L, SEEK_END) < 0) {
+	if (fseeko(fp, 0L, SEEK_END) < 0) {
 		perror(argv[1]);
 		goto err2;
 	}
-	len = ftell(fp);
+	len = ftello(fp);
 	if (len < 0) {
 		perror(argv[1]);
 		goto err2;
 	}
-	fseek(fp, 0L, SEEK_SET);
+	fseeko(fp, 0L, SEEK_SET);
 	pix_size = calc_pix_size(len);
 
 	buf = malloc(pix_size);
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
 	pixels = (len + pix_size - 1) / pix_size;
 	w = ceil(sqrt(pixels));
 
-	fprintf(stderr, "len %ld, pix_size %lu, pixels %d, w %d\n",
+	fprintf(stderr, "len %lld, pix_size %lu, pixels %d, w %d\n",
 		len, pix_size, pixels, w);
 	img = malloc(w * w);
 	if (img == NULL) {
