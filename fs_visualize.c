@@ -116,9 +116,13 @@ int main(int argc, char **argv)
 	time_t t;
 	char outf_name[25];
 
-	if (argc != 2) {
-		printf("Usage: %s [file]\n", argv[0]);
+	if (argc < 2 || argc > 3) {
+		printf("Usage: %s <source_file> [<target_file>]\n", argv[0]);
 		return 0;
+	}
+
+	if (argc > 2) {
+		strncpy(outf_name, argv[2], sizeof(outf_name)/sizeof(outf_name[0]));
 	}
 
 	fp = fopen(argv[1], "rb");
@@ -180,8 +184,10 @@ int main(int argc, char **argv)
 
 	puts("\r100 %");
 
-	t = time(NULL);
-	strftime(outf_name, sizeof(outf_name), "%Y%m%d-%H%M%S.png", localtime(&t));
+	if (argc < 3) {
+		t = time(NULL);
+		strftime(outf_name, sizeof(outf_name), "%Y%m%d-%H%M%S.png", localtime(&t));
+	}
 
 	writeImage(outf_name, w, w, img);
 
