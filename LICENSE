@@ -1,0 +1,20 @@
+This software is distributed under the GNU GPL v2.
+
+Function fs_visualize.c: writeImage from
+http://www.labbookpages.co.uk/software/imgProc/libPNG.html
+is under:
+
+http://www.labbookpages.co.uk/home/licences.html
+(Referenced August 15, 2013)
+
+"
+The software and information on this site is free for use by anyone, for both
+private and commercial purposes. However, I would ask two things:
+
+    - If you find any mistakes/bugs, please let me know so I can correct them
+      for the benefit of future users
+    - Please reference myself and the web page where you found the code
+      somewhere in your documentation/website/code etc...
+
+Thank you.
+"
