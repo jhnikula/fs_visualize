@@ -5,13 +5,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <sys/user.h>
+#include <unistd.h>
 
 #define MAX_PIXELS	1024*1024
 
 unsigned long calc_pix_size(off_t fsize)
 {
-	unsigned long psize = PAGE_SIZE;
+	unsigned long psize = sysconf(_SC_PAGESIZE);
 
 	while ((fsize + psize - 1) / psize > MAX_PIXELS)
 		psize <<= 1;
