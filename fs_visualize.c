@@ -84,6 +84,11 @@ int writeImage(char* filename, int width, int height, unsigned char *buffer)
 
 	// Allocate memory for one row
 	row = (png_bytep) malloc(width * sizeof(png_byte));
+	if (row == NULL) {
+		fprintf(stderr, "Error allocating memory\n");
+		code = 1;
+		goto finalise;
+	}
 
 	// Write image data
 	int x, y;
