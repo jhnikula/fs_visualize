@@ -206,7 +206,8 @@ err4:
 err3:
 	free(buf);
 err2:
-	fclose(fp);
+	if (fp)
+		fclose(fp);
 err1:
 	return 1;
 }
