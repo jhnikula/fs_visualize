@@ -102,7 +102,7 @@ int writeImage(char* filename, int width, int height, unsigned char *buffer)
 	// End write
 	png_write_end(png_ptr, NULL);
 
-	finalise:
+finalise:
 	if (fp != NULL) fclose(fp);
 	if (info_ptr != NULL) png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
 	if (png_ptr != NULL) png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
