@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #define MAX_PIXELS	1024*1024
+#define MAX_FILE_NAME	256
 
 unsigned long calc_pix_size(off_t fsize)
 {
@@ -119,7 +120,7 @@ int main(int argc, char **argv)
 	unsigned char *buf, *img;
 	int i, pixels, w, pos = 0, progress_percent = -1;
 	time_t t;
-	char outf_name[25];
+	char outf_name[MAX_FILE_NAME];
 
 	if (argc < 2 || argc > 3) {
 		printf("Usage: %s <source_file> [<target_file>]\n", argv[0]);
@@ -127,7 +128,8 @@ int main(int argc, char **argv)
 	}
 
 	if (argc > 2) {
-		strncpy(outf_name, argv[2], sizeof(outf_name)/sizeof(outf_name[0]));
+		outf_name[MAX_FILE_NAME - 1] = '\0';
+		strncpy(outf_name, argv[2], MAX_FILE_NAME - 1);
 	}
 
 	fp = fopen(argv[1], "rb");
