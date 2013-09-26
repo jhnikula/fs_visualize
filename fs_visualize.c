@@ -39,9 +39,9 @@ int writeImage(char* filename, int width, int height, unsigned char *buffer)
 {
 	int code = 0;
 	FILE *fp;
-	png_structp png_ptr;
-	png_infop info_ptr;
-	png_bytep row;
+	png_structp png_ptr = NULL;
+	png_infop info_ptr = NULL;
+	png_bytep row = NULL;
 	
 	// Open file for writing (binary mode)
 	fp = fopen(filename, "wb");
