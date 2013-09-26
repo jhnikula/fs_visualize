@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 	w = ceil(sqrt(pixels));
 
 	fprintf(stderr, "len %lld, pix_size %lu, pixels %d, w %d\n",
-		len, pix_size, pixels, w);
+		(long long int)len, pix_size, pixels, w);
 	img = malloc(w * w);
 	if (img == NULL) {
 		perror("");
