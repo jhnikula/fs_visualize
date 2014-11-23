@@ -168,11 +168,11 @@ int main(int argc, char **argv)
 
 	while (len - processed > pix_size) {
 		i = read(fp, buf, pix_size);
-		img[pos++] = avg(buf, i);
 		if (i != pix_size) {
 			perror("");
 			goto err4;
 		}
+		img[pos++] = avg(buf, i);
 		processed += i;
 
 		tmp = processed / (len / 100);
