@@ -1,3 +1,4 @@
+#include <fcntl.h>
 #include <math.h>
 #include <png.h>
 #include <stdio.h>
@@ -6,6 +7,8 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define MAX_PIXELS	1024*1024
 #define MAX_FILE_NAME	256
@@ -114,7 +117,7 @@ finalise:
 
 int main(int argc, char **argv)
 {
-	FILE *fp;
+	int fp;
 	off_t len, processed = 0, tmp;
 	unsigned long pix_size;
 	unsigned char *buf, *img;
@@ -132,22 +135,18 @@ int main(int argc, char **argv)
 		strncpy(outf_name, argv[2], MAX_FILE_NAME - 1);
 	}
 
-	fp = fopen(argv[1], "rb");
-	if (fp == NULL) {
+	fp = open(argv[1], O_RDONLY);
+	if (fp < 0) {
 		perror(argv[1]);
 		goto err1;
 	}
 
-	if (fseeko(fp, 0L, SEEK_END) < 0) {
-		perror(argv[1]);
-		goto err2;
-	}
-	len = ftello(fp);
+	len = lseek(fp, 0L, SEEK_END);
 	if (len < 0) {
 		perror(argv[1]);
 		goto err2;
 	}
-	fseeko(fp, 0L, SEEK_SET);
+	lseek(fp, 0L, SEEK_SET);
 	pix_size = calc_pix_size(len);
 
 	buf = malloc(pix_size);
@@ -168,7 +167,7 @@ int main(int argc, char **argv)
 	}
 
 	while (len - processed > pix_size) {
-		i = fread(buf, 1, pix_size, fp);
+		i = read(fp, buf, pix_size);
 		img[pos++] = avg(buf, i);
 		if (i != pix_size) {
 			perror("");
@@ -185,7 +184,7 @@ int main(int argc, char **argv)
 	}
 
 	if (len - processed > 0) {
-		i = fread(buf, 1, len - processed, fp);
+		i = read(fp, buf, len - processed);
 		img[pos] = avg(buf, i);
 	}
 
@@ -200,7 +199,7 @@ int main(int argc, char **argv)
 
 	free(img);
 	free(buf);
-	fclose(fp);
+	close(fp);
 
 	return 0;
 err4:
@@ -209,7 +208,7 @@ err3:
 	free(buf);
 err2:
 	if (fp)
-		fclose(fp);
+		close(fp);
 err1:
 	return 1;
 }
