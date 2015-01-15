@@ -10,6 +10,16 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#if defined(__i386__) || defined(__x86_64__)
+#include <cpuid.h>
+#include <mm_malloc.h>
+#else
+#define _mm_malloc(s, a)	malloc(s)
+#define _mm_free		free
+#endif
+
+extern unsigned char avg_sse2(unsigned char *buf, int len);
+
 #define MAX_PIXELS	1024*1024
 #define MAX_FILE_NAME	256
 
@@ -23,7 +33,7 @@ unsigned long calc_pix_size(off_t fsize)
 	return psize;
 }
 
-unsigned char avg(unsigned char *buf, int len)
+unsigned char avg_generic(unsigned char *buf, int len)
 {
 	unsigned int sum = 0;
 	int i = len;
@@ -124,6 +134,7 @@ int main(int argc, char **argv)
 	int i, pixels, w, pos = 0, progress_percent = -1;
 	time_t t;
 	char outf_name[MAX_FILE_NAME];
+	unsigned char (*avg)(unsigned char *buf, int len) = avg_generic;
 
 	if (argc < 2 || argc > 3) {
 		printf("Usage: %s <source_file> [<target_file>]\n", argv[0]);
@@ -149,11 +160,19 @@ int main(int argc, char **argv)
 	lseek(fp, 0L, SEEK_SET);
 	pix_size = calc_pix_size(len);
 
-	buf = malloc(pix_size);
+	buf = _mm_malloc(pix_size, 16);
 	if (buf == NULL) {
 		perror("");
 		goto err2;
 	}
+
+#if defined(__i386__) || defined(__x86_64__)
+	__builtin_cpu_init();
+	if (__builtin_cpu_supports("sse3")) {
+		printf("Using SSE2 optimizations\n");
+		avg = avg_sse2;
+	}
+#endif
 
 	pixels = (len + pix_size - 1) / pix_size;
 	w = ceil(sqrt(pixels));
@@ -172,7 +191,11 @@ int main(int argc, char **argv)
 			perror("");
 			goto err4;
 		}
-		img[pos++] = avg(buf, i);
+		/*
+		 * calculate byte average using optimized algorithm found
+		 * above
+		 */
+		img[pos++] = (*avg)(buf, i);
 		processed += i;
 		posix_fadvise(fp, 0, processed, POSIX_FADV_DONTNEED);
 
@@ -184,9 +207,14 @@ int main(int argc, char **argv)
 		}
 	}
 
+	/*
+	 * calculate remaining bytes. Have to use generic byte average
+	 * algorithm since optimized algorithms are not expected to be able
+	 * to deal with data that is not multiple of PAGE_SIZE
+	 */
 	if (len - processed > 0) {
 		i = read(fp, buf, len - processed);
-		img[pos] = avg(buf, i);
+		img[pos] = avg_generic(buf, i);
 	}
 
 	puts("\r100 %");
@@ -199,14 +227,14 @@ int main(int argc, char **argv)
 	writeImage(outf_name, w, w, img);
 
 	free(img);
-	free(buf);
+	_mm_free(buf);
 	close(fp);
 
 	return 0;
 err4:
 	free(img);
 err3:
-	free(buf);
+	_mm_free(buf);
 err2:
 	if (fp)
 		close(fp);
