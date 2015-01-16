@@ -135,6 +135,9 @@ int main(int argc, char **argv)
 	time_t t;
 	char outf_name[MAX_FILE_NAME];
 	unsigned char (*avg)(unsigned char *buf, int len) = avg_generic;
+#if defined(__i386__) || defined(__x86_64__)
+	unsigned int eax, ebx, ecx, edx = 0;
+#endif
 
 	if (argc < 2 || argc > 3) {
 		printf("Usage: %s <source_file> [<target_file>]\n", argv[0]);
@@ -167,8 +170,8 @@ int main(int argc, char **argv)
 	}
 
 #if defined(__i386__) || defined(__x86_64__)
-	__builtin_cpu_init();
-	if (__builtin_cpu_supports("sse2")) {
+	__get_cpuid(1, &eax, &ebx, &ecx, &edx);
+	if (edx & bit_SSE2) {
 		printf("Using SSE2 optimizations\n");
 		avg = avg_sse2;
 	}
