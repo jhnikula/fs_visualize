@@ -168,7 +168,7 @@ int main(int argc, char **argv)
 
 #if defined(__i386__) || defined(__x86_64__)
 	__builtin_cpu_init();
-	if (__builtin_cpu_supports("sse3")) {
+	if (__builtin_cpu_supports("sse2")) {
 		printf("Using SSE2 optimizations\n");
 		avg = avg_sse2;
 	}
