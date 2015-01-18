@@ -131,7 +131,7 @@ int main(int argc, char **argv)
 	off_t len, processed = 0, tmp;
 	unsigned long pix_size;
 	unsigned char *buf, *img;
-	int i, pixels, w, pos = 0, progress_percent = -1;
+	int i, pixels, w, pos = 0;
 	time_t t;
 	char outf_name[MAX_FILE_NAME];
 	unsigned char (*avg)(unsigned char *buf, int len) = avg_generic;
@@ -188,6 +188,7 @@ int main(int argc, char **argv)
 		goto err3;
 	}
 
+	tmp = len / 100;
 	while (len - processed > pix_size) {
 		i = read(fp, buf, pix_size);
 		if (i != pix_size) {
@@ -202,10 +203,9 @@ int main(int argc, char **argv)
 		processed += i;
 		posix_fadvise(fp, 0, processed, POSIX_FADV_DONTNEED);
 
-		tmp = processed / (len / 100);
-		if (tmp > progress_percent) {
-			progress_percent = tmp;
-			printf("\r%d %%", progress_percent);
+		if (processed > tmp) {
+			tmp += len / 100;
+			printf("\r%d %%", (int)(processed / (len / 100)));
 			fflush(stdout);
 		}
 	}
