@@ -128,7 +128,7 @@ finalise:
 int main(int argc, char **argv)
 {
 	int fp;
-	off_t len, processed = 0, tmp;
+	off_t len, progress_thr, processed = 0;
 	unsigned long pix_size;
 	unsigned char *buf, *img;
 	int i, pixels, w, pos = 0;
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
 		goto err3;
 	}
 
-	tmp = len / 100;
+	progress_thr = len / 100;
 	while (len - processed > pix_size) {
 		i = read(fp, buf, pix_size);
 		if (i != pix_size) {
@@ -203,8 +203,8 @@ int main(int argc, char **argv)
 		processed += i;
 		posix_fadvise(fp, 0, processed, POSIX_FADV_DONTNEED);
 
-		if (processed > tmp) {
-			tmp += len / 100;
+		if (processed > progress_thr) {
+			progress_thr += len / 100;
 			printf("\r%d %%", (int)(processed / (len / 100)));
 			fflush(stdout);
 		}
