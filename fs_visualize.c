@@ -128,7 +128,7 @@ finalise:
 int main(int argc, char **argv)
 {
 	int fp;
-	off_t len, progress_thr, processed = 0;
+	off_t len, progress_thr = 0, processed = 0;
 	unsigned long pix_size;
 	unsigned char *buf, *img;
 	int i, pixels, w, pos = 0;
@@ -188,7 +188,6 @@ int main(int argc, char **argv)
 		goto err3;
 	}
 
-	progress_thr = len / 100;
 	while (len - processed > pix_size) {
 		i = read(fp, buf, pix_size);
 		if (i != pix_size) {
