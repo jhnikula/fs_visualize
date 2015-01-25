@@ -22,6 +22,7 @@ extern unsigned char avg_sse2(unsigned char *buf, int len);
 
 #define MAX_PIXELS	1024*1024
 #define MAX_FILE_NAME	256
+#define MAX_CACHING	8*1024*1024
 
 unsigned long calc_pix_size(off_t fsize)
 {
@@ -131,7 +132,7 @@ int main(int argc, char **argv)
 	off_t len, progress_thr = 0, processed = 0;
 	unsigned long pix_size;
 	unsigned char *buf, *img;
-	int i, pixels, w, pos = 0;
+	int i, pixels, w, pos = 0, cached = 0;
 	time_t t;
 	char outf_name[MAX_FILE_NAME];
 	unsigned char (*avg)(unsigned char *buf, int len) = avg_generic;
@@ -200,7 +201,11 @@ int main(int argc, char **argv)
 		 */
 		img[pos++] = (*avg)(buf, i);
 		processed += i;
-		posix_fadvise(fp, 0, processed, POSIX_FADV_DONTNEED);
+		cached += i;
+		if (cached >= MAX_CACHING) {
+			posix_fadvise(fp, processed - i, i, POSIX_FADV_DONTNEED);
+			cached = 0;
+		}
 
 		if (processed > progress_thr) {
 			progress_thr += len / 100;
