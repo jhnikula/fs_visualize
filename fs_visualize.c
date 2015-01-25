@@ -12,6 +12,7 @@
 
 #define MAX_PIXELS	1024*1024
 #define MAX_FILE_NAME	256
+#define MAX_CACHING	8*1024*1024
 
 unsigned long calc_pix_size(off_t fsize)
 {
@@ -121,7 +122,7 @@ int main(int argc, char **argv)
 	off_t len, processed = 0, tmp;
 	unsigned long pix_size;
 	unsigned char *buf, *img;
-	int i, pixels, w, pos = 0, progress_percent = -1;
+	int i, pixels, w, pos = 0, progress_percent = -1, cached = 0;
 	time_t t;
 	char outf_name[MAX_FILE_NAME];
 
@@ -174,7 +175,11 @@ int main(int argc, char **argv)
 		}
 		img[pos++] = avg(buf, i);
 		processed += i;
-		posix_fadvise(fp, processed - i, i, POSIX_FADV_DONTNEED);
+		cached += i;
+		if (cached >= MAX_CACHING) {
+			posix_fadvise(fp, processed - i, i, POSIX_FADV_DONTNEED);
+			cached = 0;
+		}
 
 		tmp = processed / (len / 100);
 		if (tmp > progress_percent) {
