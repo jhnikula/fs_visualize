@@ -174,7 +174,7 @@ int main(int argc, char **argv)
 		}
 		img[pos++] = avg(buf, i);
 		processed += i;
-		posix_fadvise(fp, 0, processed, POSIX_FADV_DONTNEED);
+		posix_fadvise(fp, processed - i, i, POSIX_FADV_DONTNEED);
 
 		tmp = processed / (len / 100);
 		if (tmp > progress_percent) {
