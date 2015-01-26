@@ -203,7 +203,8 @@ int main(int argc, char **argv)
 		processed += i;
 		cached += i;
 		if (cached >= MAX_CACHING) {
-			posix_fadvise(fp, processed - i, i, POSIX_FADV_DONTNEED);
+			posix_fadvise(fp, processed - cached, cached,
+				      POSIX_FADV_DONTNEED);
 			cached = 0;
 		}
 
