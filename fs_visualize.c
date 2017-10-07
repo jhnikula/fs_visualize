@@ -191,10 +191,9 @@ int main(int argc, char **argv)
 
 	while (len - processed > pix_size) {
 		i = read(fp, buf, pix_size);
-		if (i != pix_size) {
-			perror("");
+		if (i != pix_size)
 			goto err4;
-		}
+
 		/*
 		 * calculate byte average using optimized algorithm found
 		 * above
@@ -222,6 +221,8 @@ int main(int argc, char **argv)
 	 */
 	if (len - processed > 0) {
 		i = read(fp, buf, len - processed);
+		if (i != (len - processed))
+			goto err4;
 		img[pos] = avg_generic(buf, i);
 	}
 
@@ -240,6 +241,7 @@ int main(int argc, char **argv)
 
 	return 0;
 err4:
+	perror("");
 	free(img);
 err3:
 	_mm_free(buf);
