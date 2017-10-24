@@ -1,8 +1,10 @@
+#include <errno.h>
 #include <fcntl.h>
 #include <math.h>
 #include <png.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -46,10 +48,10 @@ unsigned char avg_generic(unsigned char *buf, int len)
 }
 
 /*
- * This function is from
+ * This function is originally from
  * http://www.labbookpages.co.uk/software/imgProc/libPNG.html
  */
-int writeImage(char* filename, int width, int height, unsigned char *buffer)
+int writeImage(char* filename, int width, int height, int *buffer, bool color)
 {
 	int code = 0;
 	FILE *fp;
@@ -91,14 +93,15 @@ int writeImage(char* filename, int width, int height, unsigned char *buffer)
 	png_init_io(png_ptr, fp);
 
 	// Write header (8 bit gray)
-	png_set_IHDR(png_ptr, info_ptr, width, height,
-			8, PNG_COLOR_TYPE_GRAY, PNG_INTERLACE_NONE,
+	png_set_IHDR(png_ptr, info_ptr, width, height, 8,
+			color ? PNG_COLOR_TYPE_RGB : PNG_COLOR_TYPE_GRAY,
+			PNG_INTERLACE_NONE,
 			PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
 	png_write_info(png_ptr, info_ptr);
 
 	// Allocate memory for one row
-	row = (png_bytep) malloc(width * sizeof(png_byte));
+	row = (png_bytep) malloc((color ? 3 : 1) * width * sizeof(png_byte));
 	if (row == NULL) {
 		fprintf(stderr, "Error allocating memory\n");
 		code = 1;
@@ -106,10 +109,21 @@ int writeImage(char* filename, int width, int height, unsigned char *buffer)
 	}
 
 	// Write image data
-	int x, y;
+	int x, y, pixel;
 	for (y=0 ; y<height ; y++) {
 		for (x=0 ; x<width ; x++) {
-			row[x] = buffer[y*width + x];
+			pixel = buffer[y*width + x];
+			if (color == false) {
+				row[x] = pixel;
+			} else if (pixel >= 0) {
+				row[3 * x] = pixel;
+				row[3 * x + 1] = pixel;
+				row[3 * x + 2] = pixel;
+			} else {
+				row[3 * x] = -pixel;
+				row[3 * x + 1] = 0;
+				row[3 * x + 2] = 0;
+			}
 		}
 		png_write_row(png_ptr, row);
 	}
@@ -131,8 +145,9 @@ int main(int argc, char **argv)
 	int fp;
 	off_t len, progress_thr = 0, processed = 0;
 	unsigned long pix_size;
-	unsigned char *buf, *img;
-	int i, pixels, w, pos = 0, cached = 0;
+	unsigned char *buf;
+	bool color = false;
+	int i, pixels, w, pos = 0, cached = 0, *img;
 	time_t t;
 	char outf_name[MAX_FILE_NAME];
 	unsigned char (*avg)(unsigned char *buf, int len) = avg_generic;
@@ -183,7 +198,7 @@ int main(int argc, char **argv)
 
 	fprintf(stderr, "len %lld, pix_size %lu, pixels %d, w %d\n",
 		(long long int)len, pix_size, pixels, w);
-	img = malloc(w * w);
+	img = malloc(sizeof(*img) * w * w);
 	if (img == NULL) {
 		perror("");
 		goto err3;
@@ -191,15 +206,26 @@ int main(int argc, char **argv)
 
 	while (len - processed > pix_size) {
 		i = read(fp, buf, pix_size);
-		if (i != pix_size)
-			goto err4;
-
 		/*
 		 * calculate byte average using optimized algorithm found
-		 * above
+		 * above or in case of error indicate it with negative value
 		 */
-		img[pos++] = (*avg)(buf, i);
-		processed += i;
+		processed += pix_size;
+		if (i == pix_size) {
+			img[pos++] = (*avg)(buf, i);
+		} else {
+			fprintf(stderr, "\nRead error at %lld. Error %d. %s\n",
+				(long long int)processed - pix_size,
+				errno, strerror(errno));
+			img[pos++] = -255;
+			color = true;
+			/*
+			 * File offset update is undefined after read error.
+			 * Seek exactly at the next chunk.
+			 */
+			lseek(fp, processed, SEEK_SET);
+		}
+
 		cached += i;
 		if (cached >= MAX_CACHING) {
 			posix_fadvise(fp, processed - cached, cached,
@@ -221,9 +247,15 @@ int main(int argc, char **argv)
 	 */
 	if (len - processed > 0) {
 		i = read(fp, buf, len - processed);
-		if (i != (len - processed))
-			goto err4;
-		img[pos] = avg_generic(buf, i);
+		if (i == (len - processed)) {
+			img[pos] = avg_generic(buf, i);
+		} else {
+			fprintf(stderr, "\nRead error at %lld. Error %d. %s\n",
+				(long long int)processed,
+				errno, strerror(errno));
+			img[pos] = -255;
+			color = true;
+		}
 	}
 
 	puts("\r100 %");
@@ -233,16 +265,13 @@ int main(int argc, char **argv)
 		strftime(outf_name, sizeof(outf_name), "%Y%m%d-%H%M%S.png", localtime(&t));
 	}
 
-	writeImage(outf_name, w, w, img);
+	writeImage(outf_name, w, w, img, color);
 
 	free(img);
 	_mm_free(buf);
 	close(fp);
 
 	return 0;
-err4:
-	perror("");
-	free(img);
 err3:
 	_mm_free(buf);
 err2:
