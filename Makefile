@@ -11,7 +11,7 @@ OBJS += avg_sse2.o
 endif
 
 $(OUTPUT): $(OBJS)
-	$(CC) $(CFLAGS) $(LIBS) -o $(OUTPUT) $(OBJS)
+	$(CC) $(CFLAGS) -o $(OUTPUT) $(OBJS) $(LIBS)
 
 avg_sse2.o: avg_sse2.c
 	$(CC) $(CFLAGS) -msse2 -o $@ -c $<
