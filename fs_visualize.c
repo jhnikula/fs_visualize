@@ -47,6 +47,43 @@ unsigned char avg_generic(unsigned char *buf, int len)
 	return sum / len;
 }
 
+unsigned char avg_generic_simd(unsigned char *p, int len)
+{
+	/* mask for even bytes in a CPU register. Truncated for 32-bit CPU */
+	unsigned long even_bytes_mask = (unsigned long)0x00FF00FF00FF00FF;
+	unsigned long *buf = (unsigned long*)p;
+	unsigned int sum = 0; /* total byte value sum */
+	unsigned long sum_vector; /* vector of 16-bit byte sums */
+	int i, j = len;
+
+	while (j) {
+		sum_vector = 0;
+		for (i = 0; i < 128; i++) {
+			/*
+			 * add together even and odd byte pairs in the *buf.
+			 * Result is a vector of 16-bit UINTs which is then
+			 * added into the sum vector. Here summing is done
+			 * directly by summing even and odd bytes separately
+			 * into the sum vector
+			*/
+			sum_vector += *buf & even_bytes_mask;
+			sum_vector += (*buf >> 8) & even_bytes_mask;
+			buf++;
+		}
+		/*
+		 * add horizontally elements in the sum vector into the total
+		 * byte value sum
+		 */
+		for (i = 0; i < sizeof(*buf) / 2; i++) {
+			sum += sum_vector & 0xFFFF;
+			sum_vector >>= 16;
+		}
+		j -= 128 * sizeof(*buf);
+	}
+
+	return sum / len;
+}
+
 /*
  * This function is originally from
  * http://www.labbookpages.co.uk/software/imgProc/libPNG.html
@@ -150,7 +187,7 @@ int main(int argc, char **argv)
 	int i, pixels, w, pos = 0, cached = 0, *img;
 	time_t t;
 	char outf_name[MAX_FILE_NAME];
-	unsigned char (*avg)(unsigned char *buf, int len) = avg_generic;
+	unsigned char (*avg)(unsigned char *buf, int len) = avg_generic_simd;
 
 	if (argc < 2 || argc > 3) {
 		printf("Usage: %s <source_file> [<target_file>]\n", argv[0]);
